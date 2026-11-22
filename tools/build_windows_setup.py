@@ -23,7 +23,7 @@ def main():
     for f in ("Setup_CVSF_Process_Simulator.bat", "Deinstallieren_CVSF_Process_Simulator.bat", "LIESMICH.txt"):
         shutil.copy(os.path.join(ROOT, "windows_setup", f), out)
     for f in ("docs/CVSF_Process_Simulator_Manual.pdf", "docs/Guide_Experimental_Data_Template.pdf",
-              "docs/CVSF_experimental_data_template.xlsx", "README.md"):
+              "docs/CVSF_experimental_data_template.xlsx", "README.md", "assets/cvsf_logo_1024.png", "assets/cvsf.ico"):
         shutil.copy(os.path.join(ROOT, f), os.path.join(out, "Dokumentation"))
     subprocess.check_call(["git", "-C", ROOT, "bundle", "create",
                            os.path.join(out, "Daten", "CVSF_Process_Simulator.bundle"), "HEAD", "main"])

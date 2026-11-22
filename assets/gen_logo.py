@@ -5,7 +5,7 @@ and the PTFE screw core, optionally with the lettering CVSF below (desktop icon)
 
 writes cvsf_icon.svg (emblem, used in the app and the manuals), cvsf_icon_text.svg (emblem + CVSF, desktop icon),
 cvsf_wordmark.svg, and - if rsvg-convert and Pillow are available - cvsf_icon_256.png, cvsf_favicon.png and cvsf.ico
-(sizes 16-32 px without lettering, 48-256 px with lettering).
+(sizes 16-40 px without lettering, 48-256 px with lettering), cvsf_logo_512.png and cvsf_logo_1024.png.
 """
 import math
 import os
@@ -98,13 +98,16 @@ def render(d):
         return
     from PIL import Image
     tmp = {}
-    for sz in (16, 24, 32, 48, 64, 128, 256):
+    for sz in (16, 20, 24, 32, 40, 48, 64, 72, 96, 128, 256):
         src = os.path.join(d, "cvsf_icon_text.svg" if sz >= 48 else "cvsf_icon.svg")
         out = os.path.join(d, f"_ico_{sz}.png")
         subprocess.run([rsvg, "-w", str(sz), "-h", str(sz), src, "-o", out], check=True)
         tmp[sz] = out
     shutil.copy(tmp[256], os.path.join(d, "cvsf_icon_256.png"))
-    subprocess.run([rsvg, "-w", "64", "-h", "64", os.path.join(d, "cvsf_icon.svg"), "-o",
+    for sz in (512, 1024):                     # high-resolution logo (documents, presentations, web)
+        subprocess.run([rsvg, "-w", str(sz), "-h", str(sz), os.path.join(d, "cvsf_icon_text.svg"), "-o",
+                        os.path.join(d, f"cvsf_logo_{sz}.png")], check=True)
+    subprocess.run([rsvg, "-w", "128", "-h", "128", os.path.join(d, "cvsf_icon.svg"), "-o",
                     os.path.join(d, "cvsf_favicon.png")], check=True)
     imgs = [Image.open(tmp[sz]).convert("RGBA") for sz in sorted(tmp)]
     imgs[-1].save(os.path.join(d, "cvsf.ico"), format="ICO", sizes=[(sz, sz) for sz in sorted(tmp)],
