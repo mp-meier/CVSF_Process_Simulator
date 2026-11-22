@@ -32,7 +32,7 @@ import model_update as MU                                                     # 
 
 _MV = MU.current()
 APP_NAME = "CVSF Process Simulator"
-SW_VERSION = "1.2"
+SW_VERSION = "1.2.1"
 APP_VERSION = f"Model {_MV['tag'] or _MV['commit'] or '?'}"
 st.set_page_config(page_title=APP_NAME, page_icon=os.path.join(ASSETS, "cvsf_favicon.png"), layout="wide",
                    initial_sidebar_state="expanded",
@@ -780,7 +780,7 @@ def _wash_default(inp_json):
 with tabs[1]:
     c1, c2, c3 = st.columns([1.4, 1.1, 2.5])
     cfg = c1.segmented_control("Module configuration", list(A3.CONFIGS), default="F-W-W-D", key="cfg3d",
-                               help="F: filtration/deliquoring module (feed), W: washing module, D: deliquoring module; "
+                               help="F: filtration/deliquoring module (feed), W: washing module, D: drying module; "
                                     "the end piece with the discharge follows the last module.")
     wash_on = c2.toggle("Show washing", value=True, key="wash3d",
                         help="Colours of the pore liquid from the washing model (tab Washing). Without a calculation "

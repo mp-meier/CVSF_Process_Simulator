@@ -26,6 +26,8 @@
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.dampingFactor = 0.08;
   controls.minDistance = 4; controls.maxDistance = 300;
+  controls.screenSpacePanning = true; controls.keyPanSpeed = 25;
+  controls.listenToKeyEvents(window);                         // arrow keys move the view
 
   scene.add(new THREE.HemisphereLight(0xdfeeff, 0x223344, 0.55));
   const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(-20, 40, 35); scene.add(key);
@@ -48,7 +50,8 @@
   const threadMat = clipable(new THREE.MeshStandardMaterial({ color: 0xf2f6fa, roughness: 0.55, transparent: true,
     opacity: 0.6, depthWrite: false }));
   const couplingMat = clipable(new THREE.MeshStandardMaterial({ color: 0x2c353e, metalness: 0.55, roughness: 0.45, envMapIntensity: 0.45 }));
-  const ptfeMat = new THREE.MeshStandardMaterial({ color: 0xf7f7f3, roughness: 0.5, metalness: 0.0, envMapIntensity: 0.8 });
+  const ptfeMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x9ea3a0).convertSRGBToLinear(), roughness: 0.6,
+    metalness: 0.0, envMapIntensity: 0.3 });                   // PTFE, toned down against the dark background
   const driveMat = new THREE.MeshStandardMaterial({ color: 0x1c2228, metalness: 0.3, roughness: 0.6, envMapIntensity: 0.12 });
   const hoseMat = new THREE.MeshStandardMaterial({ color: 0x1d242b, roughness: 0.7 });
 
@@ -154,6 +157,9 @@
     frit(m.frit0, G.Lf);
     const fc = 0.5 * (m.frit0 + m.frit1);
     const tops = m.type === "F" ? [fc, fc + 2.4] : m.type === "W" ? [m.frit0 + 0.6, fc] : [m.frit0 + 0.6, fc, fc + 2.4];
+    if (m.type === "W" && m.dose_x != null) {                 // dosing nozzle exactly at the dosing point
+      const k = Math.abs(tops[0] - m.dose_x) < Math.abs(tops[1] - m.dose_x) ? 0 : 1; tops[k] = m.dose_x;
+    }
     const nz = { top: tops, bottom: fc };
     tops.forEach(x => app.add(nozzle(x, Rt - 0.02, G.nozzle_top, G.r_nozzle, G.r_nozzle_in, true)));
     app.add(nozzle(fc, -G.r_jacket_in + 0.02, G.nozzle_bottom, G.r_nozzle, G.r_nozzle_in, true));
@@ -166,12 +172,12 @@
       const tubeIn = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 3.0, 16), ptfeMat);
       tubeIn.position.set(nz.feed, G.nozzle_top + 1.2, 0); app.add(tubeIn);
     }
-    if (m.type === "W") {
-      tops.forEach(x => { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 2.4, 12), ptfeMat);
-        t.position.set(x, G.nozzle_top + 0.7, 0); app.add(t); });
+    if (m.type === "W" && m.dose_x != null) {                 // wash liquid line only at the used dosing nozzle
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 2.4, 12), ptfeMat);
+      t.position.set(m.dose_x, G.nozzle_top + 0.7, 0); app.add(t);
     }
     nozzleX.push(nz);
-    const names = { F: ["filtration · deliquoring", "#ffffff"], W: ["washing", "#ffffff"], D: ["deliquoring", "#ffffff"] };
+    const names = { F: ["filtration · deliquoring", "#ffffff"], W: ["washing", "#ffffff"], D: ["drying module", "#ffffff"] };
     let sub = names[m.type][0];
     if (m.type === "W") sub = (m.name === "W1") ? "wash liquid 1: EtOH/water (red)" : "wash liquid 2: ethanol";
     label(m.name, sub, m.x0 + G.glass / 2, 5.6, 0, 7.5);
@@ -457,7 +463,7 @@
     <div class="r"><span class="sw" style="background:linear-gradient(90deg,#1f63e0,#e0262b,#f4f3ee)"></span>mixed colour = pore liquid composition (wash model X*(WR))</div>
     <div class="r"><span class="sw" style="background:#ffd34d;box-shadow:0 0 6px #ffb000"></span>tracer particle (mean velocity v<sub>p,ax</sub>)</div>
     <div class="r"><span class="sq" style="background:rgba(214,236,255,0.25);border-color:#bfe3ff"></span>borosilicate glass module</div>
-    <div class="r"><span class="sq" style="background:#f7f7f3"></span>screw, PTFE (${SC.N > 1 ? SC.N + "-flighted, " : ""}right-handed)</div>
+    <div class="r"><span class="sq" style="background:#c9ccca"></span>screw, PTFE (${SC.N > 1 ? SC.N + "-flighted, " : ""}right-handed)</div>
     <div class="r"><span class="sq" style="background:#d8d2c4"></span>frit (filter medium, Δp)</div>
     <div class="r"><span class="sq" style="background:rgba(47,127,255,0.45)"></span>suspension until z<sub>S1</sub></div>
     <div class="n">Particles enlarged for visibility. Colours and motion are a qualitative representation of the model results.</div>`;
@@ -490,9 +496,13 @@
   sep(); lbl("View:");
   const bv = {};
   bv.overview = btn("Overview", "whole apparatus", () => setView("overview"));
-  bv.feed = btn("F1 close-up", "feed and cake formation", () => setView("feed"));
-  bv.wash = btn("Washing", "washing modules", () => setView("wash"));
+  const vlab = { F: "filtration", W: "washing", D: "drying" };
+  mods.forEach(m => { bv[m.name] = btn(m.name, `close-up ${m.name} (${vlab[m.type]})`, () => setView(m.name)); });
+  bv.dis = btn("Discharge", "close-up of the end piece with the discharge", () => setView("dis"));
   bv.follow = btn("Follow tracer", "camera follows the tracer particle", () => setView("follow"));
+  sep();
+  btn("◀", "move the view to the left (also: arrow keys, right mouse button)", () => shiftView(-6));
+  btn("▶", "move the view to the right (also: arrow keys, right mouse button)", () => shiftView(6));
   const bPan = btn("Info panels", "show / hide the info panels", () => {
     const on = hud.style.display !== "none"; hud.style.display = legend.style.display = on ? "none" : "block";
     bPan.className = on ? "" : "on"; }, "on");
@@ -505,13 +515,18 @@
     Object.keys(bv).forEach(k => bv[k].className = k === v ? "on" : "");
     let tx, d, el = 0.2;
     if (v === "overview") { tx = xC; d = 0.53 * (xMax - xMin) / Math.tan(15 * Math.PI / 180) / Math.max(camera.aspect, 1); d = Math.max(d, 40); }
-    else if (v === "feed") { tx = mods[0].x0 + G.glass * 0.5; d = 26; }
-    else if (v === "wash") { const w = mods.filter(m => m.type === "W"); tx = w.length ? 0.5 * (w[0].x0 + w[w.length - 1].x0 + G.glass) : xC; d = w.length > 1 ? 44 : 28; }
+    else if (v === "dis") { tx = G.x_end + 0.5 * G.end_piece - 1.0; d = 24; }
+    else if (v !== "follow") { const m = mods.find(mm => mm.name === v) || mods[0]; tx = m.x0 + G.glass * 0.5; d = 24; }
     else { tx = tr.x; d = 20; }
-    const ty = v === "overview" ? 0.072 * d : (v === "follow" ? 0.6 : 0.05 * d);
+    const ty = v === "overview" ? 0.072 * d : (v === "follow" ? 0.6 : (v === "dis" ? -0.6 : 0.05 * d));
     controls.target.set(tx, ty, 0);
     camera.position.set(tx - d * 0.12, ty + d * el, d);
     controls.update();
+  }
+
+  function shiftView(dx) {
+    if (state.follow) { state.follow = false; bv.follow.className = ""; }
+    controls.target.x += dx; camera.position.x += dx; controls.update();
   }
 
   // ------------------------------------------------------------------ overview strip (2D)

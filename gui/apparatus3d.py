@@ -13,7 +13,8 @@ CVSF_FWWD_F3D.f3d (tessellated display mesh, units cm) and scaled to the design 
         F module                     feed inlet at the frit start, two top nozzles (frit centre, + 2.4 cm)
         W modules                    top nozzles at frit start + 0.6 cm and at the frit centre
         D module                     top nozzles at frit start + 0.6 / centre / + 2.4 cm
-    end piece                        glass, 7.0 cm, discharge below at 3.5 cm, screw ends 0.75 cm before it
+    end piece                        glass, 7.0 cm, discharge below at 3.5 cm (in the view, the screw runs up to the
+                                     discharge opening)
     screw (CAD)                      right-handed, d_o = 25 mm, d_i = 16 mm, P = 11 mm, w = 1 mm (screw a)
 
 The screw in the view uses the screw design of the simulation (d_i, P, N, w) with the handedness of the CAD
@@ -42,7 +43,7 @@ CAD = dict(
     r_jacket=2.05, r_jacket_in=1.95, r_neck=1.6, shoulder=0.9,
     r_coupling=2.0, coupling_ref=4.4, LT_ref=9.4,
     r_nozzle=0.69, r_nozzle_in=0.5, nozzle_top=3.25, nozzle_bottom=-3.95,
-    end_piece=7.0, discharge_rel=3.5, screw_end_gap=0.75, lead_in=2.2,
+    end_piece=7.0, discharge_rel=3.5, screw_end_gap=0.75, lead_in=2.2, nozzle_W2=0.6,
     screw_cad=dict(d_o=0.025, d_i=0.016, P=0.011, w=0.001, hand="right"),
 )
 
@@ -85,7 +86,8 @@ def scene_data(R, W=None, config="F-W-W-D", wash_on=True):
         modules.append(dict(type=t, name=f"{t}{counts[t]}", x0=x0, frit0=x0 + CAD["frit_start"], frit1=x0 + CAD["frit_start"] + Lf))
     x_end = x_mod0 + len(mods) * pitch               # start of the end piece
     x_dis = x_end + CAD["discharge_rel"]
-    screw = dict(x0=-0.23, x1=x_end - CAD["screw_end_gap"], r_core=r_core, r_out=r_screw, P=100 * inp.P,
+    # the screw runs through the end piece up to the discharge opening (particles leave the apparatus there)
+    screw = dict(x0=-0.23, x1=x_end + CAD["discharge_rel"] + 0.9, r_core=r_core, r_out=r_screw, P=100 * inp.P,
                  N=int(inp.N), w=100 * inp.w, hand="right")
     # --- operating point
     th = float(K["theta_m"]); v_ax = float(K["v_ax"]) * 100      # cm/s
@@ -129,7 +131,7 @@ def scene_data(R, W=None, config="F-W-W-D", wash_on=True):
         st[0]["WR_applied"] = float(WR1 * min(1.0, (m1["frit1"] - d1) / max(zw1, 1e-6)))
         if len(wmods) > 1:
             m2 = wmods[1]
-            d2 = m2["frit1"] - min(rest2, Lf)
+            d2 = m2["frit0"] + CAD["nozzle_W2"]                  # dosing nozzle at the beginning of the frit
             L2 = min(zw2, m2["frit1"] - d2)
             st.append(dict(name=m2["name"], x_dose=d2, x_end=d2 + L2, need=zw2, avail=m2["frit1"] - d2, WR=WR2,
                            liquid="ethanol (colourless)", color="clear",
@@ -140,6 +142,9 @@ def scene_data(R, W=None, config="F-W-W-D", wash_on=True):
             ML = np.where(xg >= d2, ML_in * g, ML)
             gtr = np.interp(f2 * WR2, Wg, np.asarray(W["X2_tracer"])) if "X2_tracer" in W else g
             RW = np.where(xg >= d2, (1 - ML_in) * gtr, RW)
+        m1["dose_x"] = d1
+        if len(wmods) > 1:
+            wmods[1]["dose_x"] = d2
         wash = dict(on=True, steps=st, X1_end=X1e, X2_end=float(W["X2_end"]) if len(wmods) > 1 else None)
     elif wash_on and wmods and not finished:
         wash["msg"] = "Washing not shown: cake formation is not completed on the frit of F1 (z_S1 > L_f)."

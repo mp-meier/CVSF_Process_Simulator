@@ -168,14 +168,14 @@ from the feed to the discharge.</li>
 <li><b>Washing colours:</b> blue = mother liquor (impurity), red = wash liquid 1 (ethanol/water with red optical
 tracer), colourless/white = wash liquid 2 (ethanol); mixed colours from the washing model X*(WR) of both steps
 (legend in the view). A note appears if the wash liquid needs more frit length than available.</li>
-<li><b>Controls:</b> play/pause, 1× real time, 10×, 60×, 300×, reset, release tracer, views (overview, F1 close-up,
-washing, follow tracer), section view, info panels on/off; drag to rotate, scroll to zoom, right-drag to pan.</li></ul>
+<li><b>Controls:</b> play/pause, 1× real time, 10×, 60×, 300×, reset, release tracer, views (overview, close-ups of F1, W1, W2, D1 and the discharge,
+follow tracer), ◀ ▶ to move the view left and right, section view, info panels on/off; drag to rotate, scroll to zoom, right-drag or arrow keys to move.</li></ul>
 {img("sim_3d_overview.png", "Tab 3D apparatus, overview (configuration F-W-W-D): glass modules, PTFE screw, filter cake "
                             "coloured by the pore liquid, tracer particle, info panel, legend, and strip with z_S1, "
                             "pore liquid composition, and tracer position.")}
 {img("sim_3d_closeup.png", "F1 close-up in section view: feed, supernatant suspension, cake formation up to z_S1, "
                            "frit, and tracer particle.")}
-{img("sim_3d_washing.png", "Washing view: mother liquor (blue) is displaced by wash liquid 1 (red) from the dosing "
+{img("sim_3d_washing.png", "Close-up W1: mother liquor (blue) is displaced by wash liquid 1 (red) from the dosing "
                            "point in W1 and by ethanol (white) in W2.")}
 <div class="box">The 3D view is a qualitative representation of the model results; particles are enlarged and the
 drops are symbolic. At high speed-up, the screw rotation is drawn slowed down, while the conveying velocities remain

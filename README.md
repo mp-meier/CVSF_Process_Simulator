@@ -125,7 +125,7 @@ run the installation again. `python install_desktop_app.py --remove` removes the
 
 The tab *3D apparatus* shows the CVSF as a running apparatus. It is configured from the inputs of the sidebar and
 from the module configuration selected in the tab (F, F-W, F-W-W, F-W-W-D; F = filtration and deliquoring module with
-feed, W = washing module, D = deliquoring module, followed by the end piece with the discharge).
+feed, W = washing module, D = drying module, followed by the end piece with the discharge).
 
 - **Geometry, true to scale:** taken from the Fusion 360 model of the CVSF (`CVSF_FWWD_F3D.f3d`, tessellated display
   mesh) and scaled to the design inputs. Double-walled borosilicate glass modules (inner tube with the bore D_i,
@@ -159,10 +159,11 @@ feed, W = washing module, D = deliquoring module, followed by the end piece with
   the supernatant wash liquid on the cake, and filtrate drops below the frits are symbolic.
 - **Controls:** play/pause; speed 1× (real time), 10×, 60×, 300× (above about two revolutions per second, the screw
   rotation is drawn slowed down, the conveying velocities remain true in time); reset; release tracer; views overview,
-  F1 close-up, washing, follow tracer; section view (front half of glass and couplings cut away); info panels on/off.
+  close-ups of every module (F1, W1, W2, D1) and of the discharge, follow tracer; ◀ ▶ buttons, arrow keys or right
+  mouse button move the view to the left and right; section view (front half of glass and couplings cut away); info panels on/off.
   Mouse: drag to rotate, scroll to zoom, right-drag to pan.
 - **Limits:** the view is a qualitative representation of the model results. Particles are enlarged; the cake surface
-  is drawn flat; the deliquoring module D1 is shown without a model of its own (drying follows with model version V02).
+  is drawn flat; the drying module D1 is shown without a model of its own (drying follows with model version V02).
   Files: `gui/apparatus3d.py` (scene data from the model results, CAD dimensions), `gui/apparatus3d.js` and
   `gui/apparatus3d.css` (scene and animation), `gui/vendor/three/` (three.js r147, MIT licence).
 
@@ -310,6 +311,9 @@ are extrapolations.
 
 ## 7. Version history
 
+- 1.2.1 (23.11.2026): 3D view – screw through the end piece up to the discharge, toned-down PTFE colour, wash
+  liquid line only at the used dosing nozzle (W2 dosing exactly at the nozzle), close-ups of every module and the
+  discharge, moving the view left/right (buttons, arrow keys); module D = drying module.
 - 1.2 (22.11.2026): tab *Experiments for this prediction* (targeted Bayesian experimental design for the
   current simulation); dark mode; new logo.
 - 1.1 (22.11.2026): Windows setup package (installation folder, own Python environment, shortcuts without
