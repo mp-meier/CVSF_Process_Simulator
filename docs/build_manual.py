@@ -154,6 +154,32 @@ experimentally, the residual moisture is accessible only at the module outlet.</
                         "(red) and filling degree isolines.")}
 {img("sim_washing.png", "Tab Washing: two-stage displacement washing coupled to the filtration module – wash curves X*(WR), "
                         "critical wash ratio, washing liquid flow rates, and CVSF configuration FWW.")}
+<h3>3D apparatus</h3>
+<p>The tab <b>3D apparatus</b> shows the CVSF as a running apparatus, configured from the inputs of the sidebar and the
+module configuration selected in the tab (F, F-W, F-W-W, F-W-W-D). The geometry is taken from the Fusion 360 model of
+the CVSF and scaled to the design inputs (L_f, L_T, D_i, screw): double-walled borosilicate glass modules, frit at the
+bottom of the bore, couplings, GL 14 nozzles (feed, dosing, vacuum outlet), end piece with discharge, and drive. The
+white PTFE screw is built from the screw design of the simulation, is right-handed as in the CAD model, and turns at
+the real rotational speed counter-clockwise viewed from the feed end, so that it conveys from left to right.</p>
+<ul><li><b>Motion and residence time:</b> particles move with v_p,ax = P·n_screw/θm, settle from the supernatant
+suspension into the growing filter cake up to z_S1 (h_c(z) of the model), and fall out at the discharge. A gold tracer
+particle shows position and residence time; the info panel lists the mean residence times per frit, per module, and
+from the feed to the discharge.</li>
+<li><b>Washing colours:</b> blue = mother liquor (impurity), red = wash liquid 1 (ethanol/water with red optical
+tracer), colourless/white = wash liquid 2 (ethanol); mixed colours from the washing model X*(WR) of both steps
+(legend in the view). A note appears if the wash liquid needs more frit length than available.</li>
+<li><b>Controls:</b> play/pause, 1× real time, 10×, 60×, 300×, reset, release tracer, views (overview, F1 close-up,
+washing, follow tracer), section view, info panels on/off; drag to rotate, scroll to zoom, right-drag to pan.</li></ul>
+{img("sim_3d_overview.png", "Tab 3D apparatus, overview (configuration F-W-W-D): glass modules, PTFE screw, filter cake "
+                            "coloured by the pore liquid, tracer particle, info panel, legend, and strip with z_S1, "
+                            "pore liquid composition, and tracer position.")}
+{img("sim_3d_closeup.png", "F1 close-up in section view: feed, supernatant suspension, cake formation up to z_S1, "
+                           "frit, and tracer particle.")}
+{img("sim_3d_washing.png", "Washing view: mother liquor (blue) is displaced by wash liquid 1 (red) from the dosing "
+                           "point in W1 and by ethanol (white) in W2.")}
+<div class="box">The 3D view is a qualitative representation of the model results; particles are enlarged and the
+drops are symbolic. At high speed-up, the screw rotation is drawn slowed down, while the conveying velocities remain
+true in time.</div>
 <p>Tab <b>Export</b> provides the results (JSON), the residual moisture profile (CSV), and the inputs (JSON); tab
 <b>Model &amp; references</b> summarizes the model structure, validity ranges, and references.</p>
 """)

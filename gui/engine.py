@@ -423,12 +423,18 @@ def run_washing(run, dp_wash=100.0, Psi1=4.0, WR1=None, WR2=4.5, WR_max=40.0, X_
     X1e, _, We1, cf, cs = wm.run_ade(p1, f1, ka1, gam, bD, np.array([WR1]), return_state=True)
     c0f, c0s = wm.init_second_wash(f1, f2, cf[-1], cs[-1])
     X2 = wm.run_ade(p2, f2, ka2, gam, bD, Wg, c0_flow=c0f, c0_stag=c0s)[0]
-    X2e = wm.run_ade(p2, f2, ka2, gam, bD, np.array([WR2]), c0_flow=c0f, c0_stag=c0s)[0][0]
+    X2a, _, We2, _, _ = wm.run_ade(p2, f2, ka2, gam, bD, np.array([WR2]), c0_flow=c0f, c0_stag=c0s,
+                                   return_state=True)
+    X2e = X2a[0]
     t1 = We1[0] * p1["h_FC"] * p1["epsilon"] / p1["u_Darcy"]
     z1 = t1 * p1["v_FC"] * 100                                  # cm of filter length needed for the wash liquid
+    Xtr = wm.run_ade(p2, f2, ka2, gam, bD, Wg)[0]                 # wash liquid 1 uniformly in the pores (tracer)
+    Xtr = Xtr / max(Xtr[0], 1e-30)
+    t2 = We2[0] * p2["h_FC"] * p2["epsilon"] / p2["u_Darcy"]
+    z2 = t2 * p2["v_FC"] * 100                                  # same for washing step 2 (3D apparatus view)
     rest = dict(W1=rest_W1, W2=rest_W2)
     return dict(W=Wg, X1=X1, X2=X2, target=target, WR_crit1=wrc1, WR1=WR1, WR2=WR2, X1_end=float(X1e[0]),
                 X2_end=float(X2e), X1_abs=float(X1e[0]) * p1["X_0"], X2_abs=float(X2e) * p1["X_0"],
                 X_0=p1["X_0"], f1=f1, f2=f2, ka1=ka1, ka2=ka2, Q_pore=p1["Q_pore"] * 6e7,
                 Q_WL1=WR1 * p1["Q_pore"] * 6e7, Q_WL2=WR2 * p2["Q_pore"] * 6e7,
-                z_wash1=z1, rest=rest, gamma=gam, b_D=bD, L_seg=L_seg, pre1=p1)
+                z_wash1=z1, z_wash2=z2, X2_tracer=Xtr, rest=rest, gamma=gam, b_D=bD, L_seg=L_seg, pre1=p1)

@@ -15,12 +15,14 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
+import streamlit.components.v1 as components
 
 import base64
 
 import calibration as C
 import database as D
 import engine as E
+import apparatus3d as A3
 
 ASSETS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
@@ -28,10 +30,11 @@ import model_update as MU                                                     # 
 
 _MV = MU.current()
 APP_NAME = "CVSF Process Simulator"
+SW_VERSION = "1.1"
 APP_VERSION = f"Model {_MV['tag'] or _MV['commit'] or '?'}"
 st.set_page_config(page_title=APP_NAME, page_icon=os.path.join(ASSETS, "cvsf_favicon.png"), layout="wide",
                    initial_sidebar_state="expanded",
-                   menu_items={"About": f"{APP_NAME} – {APP_VERSION}\n\nMechanistic model of the continuous vacuum "
+                   menu_items={"About": f"{APP_NAME} {SW_VERSION} – {APP_VERSION}\n\nMechanistic model of the continuous vacuum "
                                         "screw filter (CVSF): cake filtration, gas deliquoring, evaporation, and "
                                         "two-stage washing.\n\nM.P. Meier, M. Vogel, L. Ohm – TU Dortmund University"})
 
@@ -155,7 +158,7 @@ st.markdown(f'''<div class="appbar"><img src="data:image/svg+xml;base64,{ICON_B6
 <span class="chip">Two-stage washing</span><span class="chip v">{APP_VERSION}</span></div></div>''', unsafe_allow_html=True)
 
 def _footer():
-    st.markdown(f'<div class="footer"><span>{APP_NAME} · {APP_VERSION} (CVSF_Model_Filtration_Deliquoring_Washing_V01)'
+    st.markdown(f'<div class="footer"><span>{APP_NAME} {SW_VERSION} · {APP_VERSION} (CVSF_Model_Filtration_Deliquoring_Washing_V01)'
                 '</span><span>M.P. Meier, M. Vogel, L. Ohm · TU Dortmund University, Laboratory of Plant and Process Design'
                 '</span></div>', unsafe_allow_html=True)
 
@@ -418,7 +421,8 @@ kpi(c[5], "Minimum Δp for z_S1 = L_f", f"{fmt(K['dp_req'], 0)} mbar",
 for w in R["warnings"]:
     st.warning(w, icon="⚠️")
 
-tabs = st.tabs([":material/view_timeline: Filtration module", ":material/grain: Particles & filter cake",
+tabs = st.tabs([":material/view_timeline: Filtration module", ":material/view_in_ar: 3D apparatus",
+                ":material/grain: Particles & filter cake",
                 ":material/insights: Process design", ":material/water_drop: Washing", ":material/download: Export",
                 ":material/menu_book: Model & references"])
 
@@ -545,7 +549,7 @@ with tabs[0]:
 # ------------------------------------------------------------------------------------------------------------
 # tab 2: particles
 # ------------------------------------------------------------------------------------------------------------
-with tabs[1]:
+with tabs[2]:
     l, r = st.columns([2.2, 1])
     x, Q3, dQ3 = part["centers"], part["Q3"], part["dQ3"]
     m = x > 0
@@ -592,7 +596,7 @@ with tabs[1]:
 # ------------------------------------------------------------------------------------------------------------
 # tab 3: process design
 # ------------------------------------------------------------------------------------------------------------
-with tabs[2]:
+with tabs[3]:
     def _line_fig(x, ys, title, xt, xop):
         f = go.Figure()
         for y, nm, sty in ys:
@@ -660,7 +664,7 @@ with tabs[2]:
 # ------------------------------------------------------------------------------------------------------------
 # tab 4: washing
 # ------------------------------------------------------------------------------------------------------------
-with tabs[3]:
+with tabs[4]:
     st.markdown("Two-stage displacement washing (washing study): ADE with flowing and stagnant pore compartments, "
                 "coupled to the filtration module (porosity, α_FC, h_c, θm, filling degree). Washing step 1: "
                 "ethanol/water mixture, washing step 2: ethanol.")
@@ -745,9 +749,46 @@ with tabs[3]:
                 "results for other particle shapes, PSD widths, or temperatures are extrapolations.", icon="ℹ️")
 
 # ------------------------------------------------------------------------------------------------------------
+# tab 2: 3D apparatus (three.js)
+# ------------------------------------------------------------------------------------------------------------
+@st.cache_data(show_spinner=False)
+def _wash_default(inp_json):
+    r = E.run_filtration(E.Inputs.from_json(inp_json))
+    return E.run_washing(r)
+
+
+with tabs[1]:
+    c1, c2, c3 = st.columns([1.4, 1.1, 2.5])
+    cfg = c1.segmented_control("Module configuration", list(A3.CONFIGS), default="F-W-W-D", key="cfg3d",
+                               help="F: filtration/deliquoring module (feed), W: washing module, D: deliquoring module; "
+                                    "the end piece with the discharge follows the last module.")
+    wash_on = c2.toggle("Show washing", value=True, key="wash3d",
+                        help="Colours of the pore liquid from the washing model (tab Washing). Without a calculation "
+                             "there, the default washing parameters are used.")
+    c3.caption("Geometry from the CAD model of the CVSF (Fusion 360), scaled to the design inputs of the sidebar "
+               "(L_f, L_T, D_i, screw). Screw speed, particle velocity v_p,ax = P·n/θm, z_S1, h_c(z) and the wash "
+               "curves X*(WR) are taken from the model. Drag to rotate, scroll to zoom, right-drag to pan.")
+    W3 = None
+    if wash_on and K["finished"] and cfg and "W" in cfg:
+        if "wash" in st.session_state and not st.session_state.get("wash_err"):
+            W3 = st.session_state.wash
+        else:
+            try:
+                with st.spinner("Solving the washing model for the 3D view …"):
+                    W3 = _wash_default(inp.to_json())
+            except Exception as ex:                       # noqa: BLE001
+                st.warning(f"Washing model not evaluated: {ex}", icon="⚠️")
+    data3 = A3.scene_data(R, W3, cfg or "F-W-W-D", wash_on)
+    _h3 = A3.html(data3, height=720)
+    if hasattr(st, "iframe"):
+        st.iframe(_h3, height=726)
+    else:                                                  # older Streamlit versions
+        components.html(_h3, height=726, scrolling=False)
+
+# ------------------------------------------------------------------------------------------------------------
 # tab 5: export
 # ------------------------------------------------------------------------------------------------------------
-with tabs[4]:
+with tabs[5]:
     prof = pd.DataFrame(dict(z_cm=res["z"], phi_RM=res["phi"], phi_RM_evap=res["phi_evap"]))
     kp = {k: (float(v) if isinstance(v, (int, float, np.floating, np.integer, bool)) and v is not None else v)
           for k, v in K.items()}
@@ -768,7 +809,7 @@ with tabs[4]:
 # ------------------------------------------------------------------------------------------------------------
 # tab 6: model description
 # ------------------------------------------------------------------------------------------------------------
-with tabs[5]:
+with tabs[6]:
     with st.container(border=True):
         st.markdown("#### Model version")
         mv1, mv2, mv3 = st.columns([1.2, 1, 1])

@@ -96,6 +96,8 @@ run the installation again. `python install_desktop_app.py --remove` removes the
   filling degree with and without particle backslip, ϑ_susp) and an operating window z_S1(Q_susp, n_screw) with
   the limit z_S1 = L_f and filling degree isolines; two-stage washing (wash curves X*(WR) of both washing steps,
   WR_crit,1, washing liquid flow rates, CVSF configuration); export of results (JSON) and profiles (CSV).
+- **3D apparatus (tab):** animated three-dimensional view of the CVSF (three.js, runs locally in the application
+  window; no internet connection needed). Details in section 3.1.
 - `gui/engine.py` is the interface-independent layer between the GUI and the model code (`cvsf_model/scripts/cvsf.py`,
   `cvsf_model/scripts/washing.py`); it can also be used from Python scripts (`engine.Inputs`, `engine.run_filtration`,
   `engine.studies`, `engine.operating_window`, `engine.run_washing`).
@@ -109,6 +111,51 @@ run the installation again. `python install_desktop_app.py --remove` removes the
   the default operating point (OP 1), it returns exactly the value of the validation for this single PSD measurement
   (e.g. bipyramidal 355-560 µm: z_S1 = 0.360 cm, φ_RM = 17.79 %); `cvsf_model/scripts/verify_filtration_reference.py` reports the mean
   over all PSD measurements of each particle shape.
+
+### 3.1 3D apparatus
+
+The tab *3D apparatus* shows the CVSF as a running apparatus. It is configured from the inputs of the sidebar and
+from the module configuration selected in the tab (F, F-W, F-W-W, F-W-W-D; F = filtration and deliquoring module with
+feed, W = washing module, D = deliquoring module, followed by the end piece with the discharge).
+
+- **Geometry, true to scale:** taken from the Fusion 360 model of the CVSF (`CVSF_FWWD_F3D.f3d`, tessellated display
+  mesh) and scaled to the design inputs. Double-walled borosilicate glass modules (inner tube with the bore D_i,
+  outer jacket OD 41 mm with conical shoulders, necks OD 32 mm), frit at the bottom of the bore (starts 2.54 cm after
+  the module start, length L_f, developed width b), couplings between the modules, GL 14 nozzles (feed inlet at the
+  frit start of F1, dosing nozzles at the frit start and the frit centre of the washing modules, vacuum outlet below
+  the frit centre), end piece with discharge, and drive. The glass module is L_f + 5 cm long; the couplings fill the
+  remaining distance to the next module (pitch L_f + L_T). The CAD model has 11 cm glass modules with 4.4 cm couplings
+  (pitch 15.4 cm, i.e. L_T = 9.4 cm); with the model value L_T = 8 cm, the couplings are drawn 3.0 cm long.
+- **Screw:** white PTFE, built from the screw design of the simulation (d_i, P, number of flights N, flight width w;
+  d_o = 25 mm). The handedness is taken from the CAD model (right-handed). The screw turns at the real rotational
+  speed n_screw, counter-clockwise viewed from the feed/drive end, i.e. in the direction in which a right-handed
+  screw conveys from the feed (left) to the discharge (right).
+- **Particles and residence time:** the particles move with the axial particle velocity of the model,
+  v_p,ax = P · n_screw / θm (slower than the flights for θm > 1), with a small random spread as a qualitative picture
+  of axial dispersion. Up to z_S1, they are partly suspended in the supernatant suspension (level from the filling
+  degree) and settle into the growing filter cake (h_c(z) of the model); after z_S1, they form the deliquored filter
+  cake. At the discharge, they fall out of the apparatus. A gold tracer particle moves with the mean velocity and shows
+  its position (z, module) and residence time; the info panel lists the mean residence times on a frit, per module,
+  and from the feed to the discharge. The strip at the bottom shows the apparatus, z_S1, the pore liquid composition
+  along z, and the tracer position.
+- **Washing (colours):** particles and filter cake are coloured by the composition of the pore liquid: blue = mother
+  liquor (impurity), red = wash liquid 1 (ethanol/water with a red optical tracer), colourless/white = wash liquid 2
+  (ethanol); mixed colours correspond to mixtures. The composition follows from the washing model (tab *Washing*; if
+  not run there, with its default parameters): in washing step 1, the wash ratio increases linearly from the dosing
+  point (frit centre, 3 cm of frit remaining) over the frit length needed for WR₁, and the mother liquor fraction is
+  X*(WR) of step 1. In washing step 2 (dosing at the frit start), the remaining mother liquor follows X*(WR) of
+  step 2, and wash liquid 1 is displaced according to the ADE of step 2 with wash liquid 1 initially distributed
+  uniformly in the pores (flowing and stagnant pore volume). If the wash liquid needs more frit length than available
+  after the dosing point, only the corresponding fraction of WR is applied and a note is displayed. Dosing drops,
+  the supernatant wash liquid on the cake, and filtrate drops below the frits are symbolic.
+- **Controls:** play/pause; speed 1× (real time), 10×, 60×, 300× (above about two revolutions per second, the screw
+  rotation is drawn slowed down, the conveying velocities remain true in time); reset; release tracer; views overview,
+  F1 close-up, washing, follow tracer; section view (front half of glass and couplings cut away); info panels on/off.
+  Mouse: drag to rotate, scroll to zoom, right-drag to pan.
+- **Limits:** the view is a qualitative representation of the model results. Particles are enlarged; the cake surface
+  is drawn flat; the deliquoring module D1 is shown without a model of its own (drying follows with model version V02).
+  Files: `gui/apparatus3d.py` (scene data from the model results, CAD dimensions), `gui/apparatus3d.js` and
+  `gui/apparatus3d.css` (scene and animation), `gui/vendor/three/` (three.js r147, MIT licence).
 
 ## 4. Calibration mode: experiment database and continuous Bayesian calibration
 
@@ -226,6 +273,8 @@ are extrapolations.
 
 ## 7. Version history
 
+- 1.1 (22.11.2026): tab *3D apparatus* – CAD-based, to-scale, animated 3D view of the CVSF with screw rotation at
+  the real speed, particle transport and residence time, cake formation, and washing colours from the model.
 - 1.0 (22.11.2026): interface with the modes Simulation, Calibration (experiment database, continuous Bayesian
   calibration, versioned model states), and Experiment design (Bayesian experimental design); desktop launcher and
   installer; user manual and guide; model code CVSF_Model as git submodule (V01) with automatic, tested take-over of
