@@ -180,6 +180,25 @@ washing, follow tracer), section view, info panels on/off; drag to rotate, scrol
 <div class="box">The 3D view is a qualitative representation of the model results; particles are enlarged and the
 drops are symbolic. At high speed-up, the screw rotation is drawn slowed down, while the conveying velocities remain
 true in time.</div>
+<h3>Experiments for this prediction</h3>
+<p>The tab <b>Experiments for this prediction</b> answers for the current inputs: which experiments, how many and at
+which parameters in the CVSF are needed so that the predicted θm, z_S1 and φ_RM come as close as possible to reality.
+The software linearizes the simulated quantities in the model parameters (μs, a, b, A, B), calculates their
+parameter-related uncertainty from the selected model state, evaluates candidate experiments around the simulated
+point (RTD, filter cake tests, CVSF runs; experiments far from the simulated conditions count less), and selects them
+one after the other by Bayesian optimization until the goal is reached (replicates possible).</p>
+<ul><li><b>Settings:</b> goal (reduction of the uncertainty in %), maximum number, experiment types and their effort.</li>
+<li><b>Result:</b> number of recommended experiments, uncertainty now → after the plan for θm, z_S1, φ_RM, plan table
+with parameters and replicates, chart of the uncertainty vs. number of experiments, Excel template of the plan, and a
+recommended validation at exactly the simulated inputs.</li>
+<li>For a well-calibrated system, the result can be that no further calibration experiments are needed; the scatter of
+the residual moisture measurements cannot be reduced by calibration and is shown separately.</li></ul>
+{img("sim_target_plan.png", "Tab Experiments for this prediction (example: new material system with wide prior): "
+                            "4 experiments halve the prediction uncertainty; plan, uncertainty vs. number of "
+                            "experiments, and validation recommendation.")}
+<h3>Dark mode</h3>
+<p>The switch <b>Dark mode</b> below the logo in the sidebar changes the appearance (interface and charts); the
+setting is remembered for the next start.</p>
 <p>Tab <b>Export</b> provides the results (JSON), the residual moisture profile (CSV), and the inputs (JSON); tab
 <b>Model &amp; references</b> summarizes the model structure, validity ranges, and references.</p>
 """)

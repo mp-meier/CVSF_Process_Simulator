@@ -325,3 +325,204 @@ def plan_template_rows(sel, run_info, material):
                           "and the PSD")
         rows.append(r)
     return C._types(pd.DataFrame(rows))
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# targeted design for one simulation: which experiments make THIS prediction reliable?
+# ---------------------------------------------------------------------------------------------------------------
+TARGETS = [("theta_m", "θm", "rel"), ("z_S1", "z_S1", "rel"), ("phi_end", "φ_RM", "abs")]
+TARGET_UNIT = {"rel": "%", "abs": "pp"}
+FLOOR = {"theta_m": 1.0, "z_S1": 2.0, "phi_end": 0.5}   # 95 % half-widths regarded as sufficiently precise
+
+
+def floors(s):
+    """a prediction counts as sufficiently precise when its parameter-related 95 % half-width is below the fixed
+    floor or below one third of the 95 % scatter of a single measurement of the quantity (further calibration could
+    then hardly be verified experimentally)"""
+    nz = noise(s)
+    return {"theta_m": max(FLOOR["theta_m"], 196 * nz["theta_rel"] / 3),
+            "z_S1": FLOOR["z_S1"],
+            "phi_end": max(FLOOR["phi_end"], 196 * nz["phi_abs"] / 3)}
+
+
+def _outputs(inp):
+    r = E.run_filtration(inp)
+    k = r["kpi"]
+    return np.array([float(k["theta_m"]), float(k["z_S1"]), float(k["phi_end"]) if k["finished"] else np.nan]), \
+        bool(k["finished"])
+
+
+def target_jacobian(inp: E.Inputs):
+    """sensitivities of the simulated quantities (theta_m, z_S1, phi_RM) to p = (mu_s, a, b, A, B) at the inputs"""
+    base = E.Inputs.from_json(inp.to_json())
+    y0, fin = _outputs(base)
+    J = np.zeros((3, 5))
+    for j, k in enumerate(P5):
+        q = E.Inputs.from_json(base.to_json())
+        v = float(getattr(q, k))
+        h = 2e-3 * max(abs(v), 0.05)
+        setattr(q, k, v + h)
+        y1, _ = _outputs(q)
+        J[:, j] = (y1 - y0) / h
+    keep = [0, 1, 2] if fin else [0, 1]
+    return y0, J, keep, fin
+
+
+def _ci(S, y0, Jt, keep):
+    """95 % half-widths of the parameter-related prediction uncertainty: theta_m, z_S1 in %, phi_RM in pp"""
+    V = np.einsum("ij,jk,ik->i", Jt, S, Jt)
+    out = {}
+    for t in keep:
+        key, lab, kind = TARGETS[t]
+        sd = np.sqrt(max(V[t], 0.0))
+        out[key] = 1.96 * (100 * sd / abs(y0[t]) if kind == "rel" else 100 * sd)
+    return out
+
+
+def target_candidates(s, inp: E.Inputs, kpi, progress=None):
+    """candidate experiments around the simulated operating point and material"""
+    rows = []
+    p = dict(mu=float(inp.mu_s), a=float(inp.a_rtd), b=float(inp.b_rtd))
+    nz = noise(s)
+    geoms = {sc: dict(cvsf.SCREWS[sc]) for sc in ("a", "b", "c")}
+    tgt_screw = inp.screw if inp.screw in geoms else "design"
+    if tgt_screw == "design":
+        geoms["design"] = dict(d_i=float(inp.d_i), P=float(inp.P), N=int(inp.N))
+    ns = sorted(set(np.round(np.linspace(1.0, 5.0, 9), 2)) | {round(float(inp.n), 2)})
+    for sc, g in geoms.items():
+        for n in ns:
+            def th(mu, a, b):
+                return cvsf.theta_m(g["d_i"], 0.025, g["P"], n, int(g["N"]), mu, a, b)
+            base = [p["mu"], p["a"], p["b"]]
+            t0 = th(*base)
+            J = np.zeros((1, 5))
+            for j in range(3):
+                h = 1e-5 * max(abs(base[j]), 1e-2)
+                q = list(base); q[j] += h
+                J[0, j] = (th(*q) - t0) / h
+            rows.append(dict(type="RTD", screw=sc, geom=g, n=float(n), pred=float(t0), J=J,
+                             R=np.array([[(nz["theta_rel"] * t0) ** 2]]), coord=np.array([n / 5.0]), group=sc,
+                             at_target=(sc == tgt_screw and abs(n - float(inp.n)) < 1e-6)))
+    if progress:
+        progress(0.15, "Candidate experiments: filter cake tests …")
+    d50 = float(kpi.get("d50") or inp.d50)
+    ag = float(kpi.get("Ag3") or 0.0)
+    sg = float(kpi.get("sigma_g") or 0.5)
+    psi = float(inp.psi_geo) if inp.psi_mode == "geometric" and inp.psi_geo else \
+        float(E.SHAPES[inp.shape]["psi_geo"] or 0.8)
+    for c in cake_candidates(s, inp.shape, sg, psi, (d50 / 2, d50 * 2), (max(0.0, ag - 0.15), min(0.85, ag + 0.15)),
+                             nd=5, na=3, rhos=float(inp.rhos)):
+        c["at_target"] = abs(np.log(c["d50"] / d50)) < 1e-6 and abs(c["Ag3"] - ag) < 0.08
+        rows.append(c)
+    if progress:
+        progress(0.3, "Candidate experiments: CVSF runs around the operating point …")
+    Q, dp = float(inp.Q), float(inp.dp)
+    info = run_candidates(s, inp, "Q", (0.7 * Q, 1.3 * Q), "dp", (max(10.0, dp - 20.0), dp + 20.0), 3, 3,
+                          progress=(lambda f, t: progress(0.3 + 0.5 * f, t)) if progress else None)
+    for c in info["rows"]:
+        c["at_target"] = c["ix"] == 1 and c["iy"] == 1
+        rows.append(c)
+    return rows, info
+
+
+def relevance(cands, inp: E.Inputs, kpi, lam=3.0):
+    """local relevance for the simulated point: the uncertainty R of a candidate is inflated with its normalized
+    distance d to the simulated operating point / material, R_eff = R (1 + lam d^2), lam = 3 - experiments far from the
+    simulated conditions carry less information for this prediction (model discrepancy grows with distance)"""
+    tgt_screw = inp.screw if inp.screw in ("a", "b", "c") else "design"
+    d50 = float(kpi.get("d50") or inp.d50)
+    ag = float(kpi.get("Ag3") or 0.0)
+    for c in cands:
+        if c["type"] == "RTD":
+            d = abs(c["n"] - float(inp.n)) / 4.0 + (0.0 if c["screw"] == tgt_screw else 1.5)
+        elif c["type"] == "cake":
+            d = abs(np.log(c["d50"] / d50)) / np.log(2.0) + abs(c["Ag3"] - ag) / 0.3
+        else:
+            d = np.hypot(c["x"] / float(inp.Q) - 1.0, (c["y"] - float(inp.dp)) / max(float(inp.dp), 1.0)) / 0.3
+        c["dist"] = float(d)
+        c["R"] = c["R"] * (1.0 + lam * d ** 2)
+    return cands
+
+
+def target_plan(cands, S, y0, Jt, keep, goals, k_max=12, cost=None, min_gain=0.005):
+    """greedy sequential design: each step selects the experiment with the largest expected reduction of the
+    prediction variance of the simulated quantities (normalized by the current variance, per cost); repeated
+    selection of the same candidate = replicate. Stops when all goals (95 % half-widths) are reached."""
+    cost = cost or {"RTD": 1.0, "cake": 0.5, "CVSF run": 2.0}
+    cands = [c for c in cands if c.get("feasible", True)]
+    V0 = np.einsum("ij,jk,ik->i", Jt, S, Jt)
+    Sk, sel = S.copy(), []
+    hist = [_ci(Sk, y0, Jt, keep)]
+
+    def met(ci):
+        return all(ci[TARGETS[t][0]] <= goals[TARGETS[t][0]] for t in keep)
+    reached = met(hist[0])
+    while not reached and len(sel) < k_max:
+        Vk = np.einsum("ij,jk,ik->i", Jt, Sk, Jt)
+        open_t = [t for t in keep if hist[-1][TARGETS[t][0]] > goals[TARGETS[t][0]]]   # goals not yet reached
+        best, bi, bS = -1.0, None, None
+        for i, c in enumerate(cands):
+            S1 = update(Sk, c["J"], c["R"])
+            V1 = np.einsum("ij,jk,ik->i", Jt, S1, Jt)
+            gain = sum((Vk[t] - V1[t]) / max(V0[t], 1e-30) for t in open_t) / cost[c["type"]]
+            if gain > best:
+                best, bi, bS = gain, i, S1
+        if bi is None or best * cost[cands[bi]["type"]] < min_gain:
+            break                                              # further experiments of these types barely help
+        Vb = np.einsum("ij,jk,ik->i", Jt, bS, Jt)
+        contrib = {TARGETS[t][1]: (Vk[t] - Vb[t]) / max(V0[t], 1e-30) for t in keep}
+        Sk = bS
+        sel.append(dict(cands[bi], step=len(sel) + 1, cand=bi, gain=float(best), contrib=contrib))
+        hist.append(_ci(Sk, y0, Jt, keep))
+        reached = met(hist[-1])
+    return sel, hist, reached
+
+
+def describe(c, run_info=None):
+    if c["type"] == "RTD":
+        g = c["geom"]
+        scr = f"screw ({c['screw']})" if c["screw"] != "design" else \
+            f"screw of the simulation (d_i = {1e3 * g['d_i']:.1f} mm, P = {1e3 * g['P']:.1f} mm, N = {g['N']})"
+        return f"RTD measurement with {scr} at n_screw = {c['n']:.2f} rpm", f"θm (predicted {c['pred']:.3f})"
+    if c["type"] == "cake":
+        return (f"filter cake test: {c['shape']} particles, d50,3 ≈ {c['d50']:.0f} µm, σg ≈ {c['sigma_g']:.2f}, "
+                f"Ag3 ≈ {c['Ag3']:.2f}"), f"ε (pred. {100 * c['pred_eps']:.1f} %), α_FC (pred. {c['pred_alpha']:.2e} m/kg)"
+    b = run_info["base"]
+    return (f"CVSF run: Q_susp = {c['x']:.0f} mL/min, Δp = {c['y']:.0f} mbar, n_screw = {b.n:.2f} rpm, "
+            f"ϑ = {b.T:.0f} °C, w_solid = {100 * b.ws:.1f} wt.-%"), f"φ_RM at outlet (predicted {100 * c['pred']:.1f} %), PSD"
+
+
+def target_plan_table(sel, run_info):
+    groups = {}
+    for c in sel:
+        g = groups.setdefault(c["cand"], dict(c=c, count=0, steps=[], gain={}))
+        g["count"] += 1
+        g["steps"].append(c["step"])
+        for k, v in c["contrib"].items():
+            g["gain"][k] = g["gain"].get(k, 0.0) + v
+    rows = []
+    for no, g in enumerate(sorted(groups.values(), key=lambda g: g["steps"][0]), 1):
+        what, meas = describe(g["c"], run_info)
+        main = max(g["gain"], key=g["gain"].get) if g["gain"] else ""
+        rows.append({"No.": no, "Type": g["c"]["type"], "Experiment (parameters)": what,
+                     "Number (replicates)": g["count"], "Measure": meas,
+                     "Mainly improves": main + (" (at the simulated point)" if g["c"].get("at_target") else "")})
+    return pd.DataFrame(rows)
+
+
+def target_template_rows(sel, run_info, material):
+    seen, uniq = set(), []
+    for c in sel:
+        if c["cand"] not in seen:
+            seen.add(c["cand"]); uniq.append(c)
+    df = plan_template_rows([dict(c, rank=c["step"]) for c in uniq], run_info, material)
+    n = {c["cand"]: sum(1 for d in sel if d["cand"] == c["cand"]) for c in uniq}
+    for i, c in enumerate(uniq):
+        if c["type"] == "RTD" and c["screw"] == "design":
+            g = c["geom"]
+            df.loc[i, "screw"] = None
+            df.loc[i, "note"] = (f"planned: measure theta_m (RTD) with the screw of the simulation (d_i = "
+                                 f"{1e3 * g['d_i']:.1f} mm, P = {1e3 * g['P']:.1f} mm, N = {g['N']})")
+        if n[c["cand"]] > 1:
+            df.loc[i, "note"] = f"{df.loc[i, 'note']}; {n[c['cand']]} replicates"
+    return df

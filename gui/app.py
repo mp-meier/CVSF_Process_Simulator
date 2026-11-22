@@ -23,6 +23,8 @@ import calibration as C
 import database as D
 import engine as E
 import apparatus3d as A3
+import theme as T
+import target_page as TP
 
 ASSETS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
@@ -30,13 +32,25 @@ import model_update as MU                                                     # 
 
 _MV = MU.current()
 APP_NAME = "CVSF Process Simulator"
-SW_VERSION = "1.1"
+SW_VERSION = "1.2"
 APP_VERSION = f"Model {_MV['tag'] or _MV['commit'] or '?'}"
 st.set_page_config(page_title=APP_NAME, page_icon=os.path.join(ASSETS, "cvsf_favicon.png"), layout="wide",
                    initial_sidebar_state="expanded",
                    menu_items={"About": f"{APP_NAME} {SW_VERSION} – {APP_VERSION}\n\nMechanistic model of the continuous vacuum "
                                         "screw filter (CVSF): cake filtration, gas deliquoring, evaporation, and "
                                         "two-stage washing.\n\nM.P. Meier, M. Vogel, L. Ohm – TU Dortmund University"})
+
+
+# appearance: light / dark mode (stored as user preference)
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = bool(C.get_pref("dark_mode", False))
+if T.apply(st.session_state.dark_mode):
+    st.rerun()
+T.install()
+
+
+def _toggle_dark():
+    C.set_pref("dark_mode", bool(st.session_state.dark_mode))
 
 
 def _b64(name):
@@ -95,6 +109,10 @@ st.markdown("""
 </style>""", unsafe_allow_html=True)
 
 
+if T.is_dark():
+    st.markdown(T.DARK_CSS, unsafe_allow_html=True)
+
+
 def kpi(col, label, value, sub="", kind="neu"):
     col.markdown(f'<div class="kpi {kind}"><div class="lab">{label}</div><div class="val">{value}</div>'
                  f'<div class="sub">{sub}</div></div>', unsafe_allow_html=True)
@@ -138,6 +156,8 @@ def save_upload(up):
 sb = st.sidebar
 sb.markdown(f'''<div class="brand"><img src="data:image/svg+xml;base64,{ICON_B64}"/><div><div class="b1">CVSF</div>
 <div class="b2">PROCESS SIMULATOR</div></div></div>''', unsafe_allow_html=True)
+sb.toggle("Dark mode", key="dark_mode", on_change=_toggle_dark, help="Switch between light and dark appearance "
+          "(remembered for the next start).")
 if "mode" not in st.session_state:
     st.session_state.mode = "Simulation"
 _MICON = {"Simulation": ":material/play_circle: ", "Calibration": ":material/model_training: ",
@@ -424,7 +444,7 @@ for w in R["warnings"]:
 tabs = st.tabs([":material/view_timeline: Filtration module", ":material/view_in_ar: 3D apparatus",
                 ":material/grain: Particles & filter cake",
                 ":material/insights: Process design", ":material/water_drop: Washing", ":material/download: Export",
-                ":material/menu_book: Model & references"])
+                ":material/science: Experiments for this prediction", ":material/menu_book: Model & references"])
 
 
 # ------------------------------------------------------------------------------------------------------------
@@ -810,6 +830,9 @@ with tabs[5]:
 # tab 6: model description
 # ------------------------------------------------------------------------------------------------------------
 with tabs[6]:
+    TP.render(R, R["inp"], ACTIVE, kpi)
+
+with tabs[7]:
     with st.container(border=True):
         st.markdown("#### Model version")
         mv1, mv2, mv3 = st.columns([1.2, 1, 1])

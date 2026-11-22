@@ -166,6 +166,34 @@ feed, W = washing module, D = deliquoring module, followed by the end piece with
   Files: `gui/apparatus3d.py` (scene data from the model results, CAD dimensions), `gui/apparatus3d.js` and
   `gui/apparatus3d.css` (scene and animation), `gui/vendor/three/` (three.js r147, MIT licence).
 
+### 3.2 Experiments for this prediction
+
+The tab *Experiments for this prediction* (mode Simulation) answers for the current inputs: which experiments, how
+many and at which parameters are needed so that the prediction of θm, z_S1 and φ_RM comes as close as possible to
+reality. Procedure (targeted Bayesian experimental design, `gui/design.py`: `target_jacobian`, `target_candidates`,
+`relevance`, `target_plan`):
+
+1. Sensitivities of the simulated quantities to the model parameters p = (μs, a, b, A, B) at the inputs (finite
+   differences of the full simulation); with the covariance Σ of the selected model state, the parameter-related
+   prediction uncertainty (95 % half-width) follows.
+2. Candidate experiments around the simulated point: RTD measurements (simulated and standard screws, n_screw 1–5 rpm
+   and the simulated speed), filter cake tests (simulated particle shape, d50,3 from half to twice the simulated value,
+   Ag3 ± 0.15), CVSF runs (Q_susp ± 30 %, Δp ± 20 mbar). The measurement uncertainty of a candidate is increased with
+   its distance d to the simulated conditions, R_eff = R (1 + 3 d²) (relevance for this prediction).
+3. Sequential Bayesian optimization: each step selects the experiment with the largest expected reduction of the
+   prediction variance of the quantities whose goal is not reached yet (per effort); Σ is updated; selecting a
+   candidate again means a replicate. Goal: reduction of the 95 % half-width by the chosen percentage, but not below
+   ± 1 % (θm), ± 2 % (z_S1), ± 0.5 pp (φ_RM) or one third of the 95 % scatter of a single measurement.
+4. Result: number of experiments, plan table (type, parameters, replicates, quantity to measure, which prediction it
+   mainly improves), uncertainty vs. number of experiments, Excel template of the plan, and a recommended validation
+   at exactly the simulated inputs. For a well-calibrated system (e.g. the reference), the result can be that no
+   further calibration experiments are needed.
+
+### 3.3 Dark mode
+
+Switch *Dark mode* below the logo in the sidebar; the setting is stored in `%LOCALAPPDATA%\CVSF_Process_Simulator\config.json`
+and used at the next start. Streamlit theme, custom elements and all charts are adapted (`gui/theme.py`).
+
 ## 4. Calibration mode: experiment database and continuous Bayesian calibration
 
 The GUI has three modes (switch at the top of the sidebar; the third mode, Experiment design, is described in section 5):
@@ -282,6 +310,8 @@ are extrapolations.
 
 ## 7. Version history
 
+- 1.2 (22.11.2026): tab *Experiments for this prediction* (targeted Bayesian experimental design for the
+  current simulation); dark mode; new logo.
 - 1.1 (22.11.2026): Windows setup package (installation folder, own Python environment, shortcuts without
   PowerShell, uninstaller); tab *3D apparatus* – CAD-based, to-scale, animated 3D view of the CVSF with screw rotation at
   the real speed, particle transport and residence time, cake formation, and washing colours from the model.

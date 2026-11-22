@@ -73,6 +73,26 @@ def set_storage_root(path):
     return path
 
 
+def get_pref(key, default=None):
+    """user preference from config.json (e.g. dark mode)"""
+    try:
+        return json.load(open(CONFIG)).get("prefs", {}).get(key, default)
+    except (OSError, ValueError):
+        return default
+
+
+def set_pref(key, value):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    cfg = {}
+    if os.path.exists(CONFIG):
+        try:
+            cfg = json.load(open(CONFIG))
+        except ValueError:
+            cfg = {}
+    cfg.setdefault("prefs", {})[key] = value
+    json.dump(cfg, open(CONFIG, "w"), indent=1)
+
+
 def set_dir():
     return os.path.join(storage_root(), "parameter_sets")
 REF_JSON = os.path.join(E.ROOT, "gui", "data", "calibration_reference.json")
