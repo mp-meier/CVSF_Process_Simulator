@@ -1,0 +1,58 @@
+# Takes over new released versions (tags V01, V02, ...) of the model code mp-meier/CVSF_Model into the submodule
+# cvsf_model/, after the self test of the software has passed with the new model version.
+# Requires the repository secret MODEL_REPO_TOKEN (fine-grained token with read access to CVSF_Model) as long as
+# CVSF_Model is private.
+name: Update model version
+
+on:
+  schedule:
+    - cron: "17 3 * * *"        # daily, 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Fetch the model repository
+        env:
+          TOKEN: ${{ secrets.MODEL_REPO_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
+          fi
+          git submodule update --init cvsf_model
+          git -C cvsf_model fetch --tags --quiet origin
+      - name: Newest model version
+        id: ver
+        run: |
+          CUR=$(git -C cvsf_model describe --tags --exact-match 2>/dev/null || echo none)
+          NEW=$(git -C cvsf_model tag -l 'V*' --sort=-v:refname | head -n 1)
+          echo "current=$CUR" >> "$GITHUB_OUTPUT"
+          echo "newest=$NEW" >> "$GITHUB_OUTPUT"
+          echo "current model version: $CUR, newest: $NEW"
+      - name: Switch to the newest model version
+        if: steps.ver.outputs.newest != steps.ver.outputs.current
+        run: git -C cvsf_model checkout --quiet "${{ steps.ver.outputs.newest }}"
+      - uses: actions/setup-python@v5
+        if: steps.ver.outputs.newest != steps.ver.outputs.current
+        with:
+          python-version: "3.12"
+      - name: Self test with the new model version
+        if: steps.ver.outputs.newest != steps.ver.outputs.current
+        run: |
+          pip install -r requirements.txt
+          python tools/selftest.py
+      - name: Take over the model version
+        if: steps.ver.outputs.newest != steps.ver.outputs.current
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cvsf_model
+          git commit -m "Model version ${{ steps.ver.outputs.newest }} (was ${{ steps.ver.outputs.current }}); self test passed"
+          git push

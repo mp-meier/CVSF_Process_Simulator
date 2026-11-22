@@ -1,0 +1,10 @@
+# model code (scripts/, model/, model_washing/)
+numpy>=2.0
+scipy>=1.13
+pandas>=2.2
+openpyxl>=3.1
+matplotlib>=3.9
+SALib>=1.5
+# graphical user interface (gui/)
+streamlit>=1.40
+plotly>=5.24

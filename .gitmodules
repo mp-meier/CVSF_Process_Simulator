@@ -1,0 +1,3 @@
+[submodule "cvsf_model"]
+	path = cvsf_model
+	url = https://github.com/mp-meier/CVSF_Model.git
