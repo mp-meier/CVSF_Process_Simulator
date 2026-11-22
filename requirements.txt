@@ -8,3 +8,5 @@ SALib>=1.5
 # graphical user interface (gui/)
 streamlit>=1.40
 plotly>=5.24
+# Windows desktop shortcut (install_desktop_app.py)
+pylnk3>=0.4; sys_platform == "win32"

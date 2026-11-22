@@ -12,6 +12,15 @@ washing studies).
 
 ## 1. Quick start
 
+**Windows setup package (recommended):** run `python tools/build_windows_setup.py`; the folder
+`dist/CVSF_Process_Simulator_<version>_Windows/` contains `Setup_CVSF_Process_Simulator.bat`, an uninstaller,
+`LIESMICH.txt`, the documentation (manual, guide, Excel template, README) and the software and model state as git
+bundles. The setup installs into `%LOCALAPPDATA%\Programs\CVSF Process Simulator` (program files, own Python
+environment `env`), creates the desktop and start menu shortcuts without PowerShell (pylnk3), and keeps the user data
+in `%LOCALAPPDATA%\CVSF_Process_Simulator`. Requirements: Python (e.g. Miniforge) and Git for Windows.
+
+**From GitHub:**
+
 1. Get the code **including the model** (git submodule):
    `git clone --recurse-submodules https://github.com/mp-meier/CVSF_Process_Simulator.git`
    (access to both private repositories required; a ZIP download from GitHub does not contain the model code).
@@ -273,7 +282,8 @@ are extrapolations.
 
 ## 7. Version history
 
-- 1.1 (22.11.2026): tab *3D apparatus* – CAD-based, to-scale, animated 3D view of the CVSF with screw rotation at
+- 1.1 (22.11.2026): Windows setup package (installation folder, own Python environment, shortcuts without
+  PowerShell, uninstaller); tab *3D apparatus* – CAD-based, to-scale, animated 3D view of the CVSF with screw rotation at
   the real speed, particle transport and residence time, cake formation, and washing colours from the model.
 - 1.0 (22.11.2026): interface with the modes Simulation, Calibration (experiment database, continuous Bayesian
   calibration, versioned model states), and Experiment design (Bayesian experimental design); desktop launcher and

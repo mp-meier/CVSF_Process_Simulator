@@ -1,0 +1,31 @@
+CVSF Process Simulator - Installation unter Windows
+===================================================
+
+Voraussetzungen
+  - Python (z. B. Miniforge unter %USERPROFILE%\miniforge3) und Git fuer Windows
+  - Internetverbindung beim ersten Setup (Python-Pakete, ca. 300 MB)
+
+Installation
+  1. Doppelklick auf  Setup_CVSF_Process_Simulator.bat
+  2. Das Setup legt das Programm in  %LOCALAPPDATA%\Programs\CVSF Process Simulator  an
+     (Software + Modell V01 + eigene Python-Umgebung) und erstellt die Verknuepfung
+     "CVSF Process Simulator" auf dem Desktop und im Startmenue.
+  3. Start ueber das Desktop-Symbol. Das Programm oeffnet sich in einem eigenen Fenster;
+     beim Schliessen des Fensters wird es beendet.
+
+Aktualisieren
+  - Im Programm: Tab "Model & references" > "Update software and model" (GitHub-Zugang noetig),
+  - oder ein neueres Setup-Paket erneut ausfuehren (Ihre Daten bleiben erhalten).
+
+Deinstallieren
+  Doppelklick auf  Deinstallieren_CVSF_Process_Simulator.bat  (auch im Programmordner).
+  Ihre Daten in  %LOCALAPPDATA%\CVSF_Process_Simulator  bleiben erhalten.
+
+Dokumentation (Ordner Dokumentation)
+  - CVSF_Process_Simulator_Manual.pdf            Handbuch mit Screenshots
+  - Guide_Experimental_Data_Template.pdf         Anleitung zur Versuchsdatenvorlage
+  - CVSF_experimental_data_template.xlsx         Excel-Vorlage fuer Versuchsdaten
+  - README.md                                    technische Beschreibung
+
+Ordner Daten
+  Software- und Modellstand als Git-Bundles (offline installierbar, ohne GitHub-Anmeldung).

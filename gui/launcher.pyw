@@ -143,7 +143,8 @@ def auto_update():
         return
     try:
         subprocess.run([python_console(), os.path.join(ROOT, "tools", "model_update.py"), "--auto"], cwd=ROOT,
-                       capture_output=True, timeout=90, env=server_env(), creationflags=0x08000000 if WIN else 0)
+                       capture_output=True, timeout=90, creationflags=0x08000000 if WIN else 0,
+                       env=dict(server_env(), GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never"))
     except Exception:                                          # noqa: BLE001
         pass
 

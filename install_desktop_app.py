@@ -25,31 +25,53 @@ def ensure_packages():
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", os.path.join(ROOT, "requirements.txt")])
 
 
-def ps(cmd):
-    return subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", cmd],
-                          capture_output=True, text=True)
+def known_folder(name):
+    """Desktop / start menu folder of the user (also when redirected, e.g. to OneDrive)"""
+    ids = {"Desktop": "B4BFCC3A-DB2C-424C-B029-7FE99A87C641", "Programs": "A77F5D77-2E2B-44C3-A6A2-ABA601054A51"}
+    fallback = {"Desktop": os.path.join(os.path.expanduser("~"), "Desktop"),
+                "Programs": os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu",
+                                         "Programs")}
+    try:
+        import ctypes
+        import uuid
+        from ctypes import wintypes
+
+        class GUID(ctypes.Structure):
+            _fields_ = [("Data1", wintypes.DWORD), ("Data2", wintypes.WORD), ("Data3", wintypes.WORD),
+                        ("Data4", ctypes.c_ubyte * 8)]
+        u = uuid.UUID(ids[name])
+        g = GUID(u.time_low, u.time_mid, u.time_hi_version, (ctypes.c_ubyte * 8)(*u.bytes[8:]))
+        out = ctypes.c_wchar_p()
+        if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(g), 0, None, ctypes.byref(out)) == 0:
+            path = out.value
+            ctypes.windll.ole32.CoTaskMemFree(out)
+            if path and os.path.isdir(path):
+                return path
+    except Exception:                                          # noqa: BLE001
+        pass
+    return fallback[name]
 
 
 def windows(remove=False):
-    folders = [ps("[Environment]::GetFolderPath('Desktop')").stdout.strip(),
-               ps("[Environment]::GetFolderPath('Programs')").stdout.strip()]
     pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
     if not os.path.exists(pyw):
         pyw = sys.executable
-    for f in folders:
-        if not f:
+    for f in (known_folder("Desktop"), known_folder("Programs")):
+        if not f or not os.path.isdir(f):
             continue
         lnk = os.path.join(f, NAME + ".lnk")
         if remove:
             if os.path.exists(lnk):
                 os.remove(lnk); print("removed", lnk)
             continue
-        q = lambda x: x.replace("'", "''")                      # noqa: E731  (PowerShell single quotes)
-        cmd = (f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{q(lnk)}');"
-               f"$s.TargetPath='{q(pyw)}';$s.Arguments='\"{q(LAUNCHER)}\"';$s.WorkingDirectory='{q(ROOT)}';"
-               f"$s.IconLocation='{q(ICO)},0';$s.Description='{NAME} - continuous vacuum screw filter model';$s.Save()")
-        r = ps(cmd)
-        print(("created " + lnk) if r.returncode == 0 and os.path.exists(lnk) else f"failed: {lnk}\n{r.stderr}")
+        try:
+            import pylnk3                                      # pure-Python writer for Windows shortcuts
+        except ImportError:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "pylnk3"])
+            import pylnk3
+        pylnk3.for_file(pyw, lnk, arguments=f'"{LAUNCHER}"', description=f"{NAME} - continuous vacuum screw filter",
+                        icon_file=ICO, icon_index=0, work_dir=ROOT)
+        print(("created " if os.path.exists(lnk) else "FAILED ") + lnk)
 
 
 def linux(remove=False):
