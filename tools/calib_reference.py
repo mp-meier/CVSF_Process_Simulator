@@ -1,6 +1,6 @@
 """Uncertainties of the reference parameter set for the Bayesian calibration of the GUI (gui/calibration.py).
 
-Calibrates mu_s, a, b, A, and B with the experimental data of the filtration study (13 RTD values, 8 filter cakes,
+Calibrates mu_s, a, b, A, and B with the experimental data of the filtration study (12 RTD values, 8 filter cakes,
 12 residual moistures at OP 1) and weakly informative priors. The measurement/model uncertainties are set to the
 root-mean-square residuals of a first pass (empirical Bayes); the posterior standard deviations of the second pass are
 stored as uncertainties of the reference set (gui/data/calibration_reference.json). The posterior means are consistent

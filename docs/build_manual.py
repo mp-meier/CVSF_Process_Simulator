@@ -263,7 +263,7 @@ accounts for the information already planned. The <b>novelty</b> term (distance 
 the normalized design space) adds exploration: experiments in regions without data also test the model structure,
 which the parameter information alone does not capture. w = 0 gives pure information gain; larger w favors new
 regions.</li>
-<li>Existing experiments are the data of the filtration study (13 RTD values, 8 filter cakes, 12 residual moistures)
+<li>Existing experiments are the data of the filtration study (12 RTD values, 8 filter cakes, 12 residual moistures)
 and all active experiments of the material system in the experiment database.</li></ul>
 <h3>5.3 Results and their interpretation</h3>
 {img("doe_plan.png", "Recommended plan: expected reduction of the parameter uncertainties (top) and ranked experiments with "
@@ -347,7 +347,7 @@ CVSF runs or increase w to explore new operating points.</td></tr>
 <tr><td>Experiment design slow</td><td>Reduce the grid points per axis of the CVSF runs.</td></tr></table>
 <p style="font-size:8.5pt;color:#6B7684">References: M.P. Meier, M. Vogel, L. Ohm, Mechanistic Modeling of Filtration and
 Deliquoring within the Continuous Vacuum Screw Filter; M.P. Meier, L. Ohm, Mechanistic Modeling of Two-Stage Washing
-within the Continuous Vacuum Screw Filter; M.P. Meier, M. Vogel, L. Ohm, CVSF_Model_Filtration_Deliquoring_Washing_V01,
+within the Continuous Vacuum Screw Filter; M.P. Meier, M. Vogel, L. Ohm, CVSF_Model_Filtration_Deliquoring_Washing_V01.1,
 TUDOdata (2026). Screenshots: reference model state of the filtration study; example values are illustrations.</p>""")
     html = (f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>CVSF Process Simulator – User manual</title>'
             f'<style>{CSS}</style></head><body>' + "\n".join(H) + "</body></html>")

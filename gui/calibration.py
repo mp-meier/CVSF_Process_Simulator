@@ -105,7 +105,7 @@ def reference_set():
     s = dict(name=REFERENCE_NAME, readonly=True, material=dict(name="L-alanine / water", rhos=1420.0, sigma=72.25e-3),
              params=dict(mu_s=cvsf.MU_S, a_rtd=cvsf.A_RTD, b_rtd=cvsf.B_RTD, A=cvsf.A_FIT, B=2.25),
              std=dict(mu_s=0.02, a_rtd=0.02, b_rtd=0.03, A=0.3, B=0.15), noise=dict(), created="2026-11-22",
-             description="Parameters of the filtration study (Fit 1: 13 RTD measurements; Fit F1: 8 filter cakes; "
+             description="Parameters of the filtration study (Fit 1: 12 RTD measurements; Fit F1: 8 filter cakes; "
                          "Fit F2: 12 residual moistures at OP 1).")
     if os.path.exists(REF_JSON):
         r = json.load(open(REF_JSON))

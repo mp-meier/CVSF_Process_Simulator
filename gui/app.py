@@ -860,7 +860,7 @@ with tabs[7]:
    corrected by the agglomeration degree, ψ_eff = ψ · (1 − Ag3/A) with **A = {E.cvsf.A_FIT}** (Fit F1).
 2. **Particle transport**: belt filter analogy with the axial particle velocity v_p,ax = P · n_screw / θm; θm from the
    extended vortex efficiency (Roberts), **μs = {E.cvsf.MU_S:.4f}, a = {E.cvsf.A_RTD:.4f}, b = {E.cvsf.B_RTD:.4f}**
-   (Fit 1, 13 RTD measurements, R² = 0.954, Q² = 0.93). Filling degree acc. to DIN 15261.
+   (Fit 1, 12 RTD measurements, R² = 0.951, Q² = 0.92). Filling degree acc. to DIN 15261.
 3. **Cake filtration** at constant Δp until the liquid saturation degree S = 1 is reached at **z_S1**.
 4. **Gas deliquoring** on the remaining filter medium (Wakeman and Tarleton), S∞,fit = B · S∞ with **B = 2.25**
    (Fit F2).
@@ -879,7 +879,7 @@ model predictions (no spatially resolved sampling possible).
   Filter (filtration study).
 - M.P. Meier, L. Ohm, Mechanistic Modeling of Two-Stage Washing within the Continuous Vacuum Screw Filter (washing
   study).
-- M.P. Meier, M. Vogel, L. Ohm, CVSF_Model_Filtration_Deliquoring_Washing_V01, TUDOdata (2026).
+- M.P. Meier, M. Vogel, L. Ohm, CVSF_Model_Filtration_Deliquoring_Washing_V01.1, TUDOdata (2026).
 - M. Vogel, master thesis, TU Dortmund University (2024); L. Ohm, master thesis, TU Dortmund University (2026).
 """)
 
